@@ -27,7 +27,9 @@ def build_transform_gen(cfg, is_train):
         max_size = cfg.INPUT.MAX_SIZE_TEST
         sample_style = "choice"
     if sample_style == "range":
-        assert len(min_size) == 2, "more than 2 ({}) min_size(s) are provided for ranges".format(len(min_size))
+        assert (
+            len(min_size) == 2
+        ), f"more than 2 ({len(min_size)}) min_size(s) are provided for ranges"
 
     logger = logging.getLogger(__name__)
     tfm_gens = []
@@ -35,7 +37,7 @@ def build_transform_gen(cfg, is_train):
         tfm_gens.append(T.RandomFlip())
     tfm_gens.append(T.ResizeShortestEdge(min_size, max_size, sample_style))
     if is_train:
-        logger.info("TransformGens used in training: " + str(tfm_gens))
+        logger.info(f"TransformGens used in training: {tfm_gens}")
     return tfm_gens
 
 
@@ -64,7 +66,7 @@ class DetrDatasetMapper:
         self.mask_on = cfg.MODEL.MASK_ON
         self.tfm_gens = build_transform_gen(cfg, is_train)
         logging.getLogger(__name__).info(
-            "Full TransformGens used in training: {}, crop: {}".format(str(self.tfm_gens), str(self.crop_gen))
+            f"Full TransformGens used in training: {str(self.tfm_gens)}, crop: {str(self.crop_gen)}"
         )
 
         self.img_format = cfg.INPUT.FORMAT
@@ -84,13 +86,12 @@ class DetrDatasetMapper:
 
         if self.crop_gen is None:
             image, transforms = T.apply_transform_gens(self.tfm_gens, image)
+        elif np.random.rand() > 0.5:
+            image, transforms = T.apply_transform_gens(self.tfm_gens, image)
         else:
-            if np.random.rand() > 0.5:
-                image, transforms = T.apply_transform_gens(self.tfm_gens, image)
-            else:
-                image, transforms = T.apply_transform_gens(
-                    self.tfm_gens[:-1] + self.crop_gen + self.tfm_gens[-1:], image
-                )
+            image, transforms = T.apply_transform_gens(
+                self.tfm_gens[:-1] + self.crop_gen + self.tfm_gens[-1:], image
+            )
 
         image_shape = image.shape[:2]  # h, w
 

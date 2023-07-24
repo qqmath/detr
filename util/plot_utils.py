@@ -29,13 +29,12 @@ def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col
     # convert single Path to list to avoid 'not iterable' error
 
     if not isinstance(logs, list):
-        if isinstance(logs, PurePath):
-            logs = [logs]
-            print(f"{func_name} info: logs param expects a list argument, converted to list[Path].")
-        else:
+        if not isinstance(logs, PurePath):
             raise ValueError(f"{func_name} - invalid argument for logs parameter.\n \
             Expect list[Path] or single Path obj, received {type(logs)}")
 
+        logs = [logs]
+        print(f"{func_name} info: logs param expects a list argument, converted to list[Path].")
     # Quality checks - verify valid dir(s), that every item in list is Path object, and that log_name exists in each dir
     for i, dir in enumerate(logs):
         if not isinstance(dir, PurePath):
