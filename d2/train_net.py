@@ -47,7 +47,7 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        if "Detr" == cfg.MODEL.META_ARCHITECTURE:
+        if cfg.MODEL.META_ARCHITECTURE == "Detr":
             mapper = DetrDatasetMapper(cfg, True)
         else:
             mapper = None
@@ -98,7 +98,7 @@ class Trainer(DefaultTrainer):
             )
         else:
             raise NotImplementedError(f"no optimizer type {optimizer_type}")
-        if not cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE == "full_model":
+        if cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE != "full_model":
             optimizer = maybe_add_gradient_clipping(cfg, optimizer)
         return optimizer
 

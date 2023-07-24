@@ -42,22 +42,24 @@ def main():
         if "backbone" in k:
             k = k.replace("backbone.0.body.", "")
             if "layer" not in k:
-                k = "stem." + k
+                k = f"stem.{k}"
             for t in [1, 2, 3, 4]:
                 k = k.replace(f"layer{t}", f"res{t + 1}")
             for t in [1, 2, 3]:
                 k = k.replace(f"bn{t}", f"conv{t}.norm")
             k = k.replace("downsample.0", "shortcut")
             k = k.replace("downsample.1", "shortcut.norm")
-            k = "backbone.0.backbone." + k
-        k = "detr." + k
+            k = f"backbone.0.backbone.{k}"
+        k = f"detr.{k}"
         print(old_k, "->", k)
         if "class_embed" in old_k:
             v = model_to_convert[old_k].detach()
             if v.shape[0] == 92:
                 shape_old = v.shape
                 model_converted[k] = v[coco_idx]
-                print("Head conversion: changing shape from {} to {}".format(shape_old, model_converted[k].shape))
+                print(
+                    f"Head conversion: changing shape from {shape_old} to {model_converted[k].shape}"
+                )
                 continue
         model_converted[k] = model_to_convert[old_k].detach()
 

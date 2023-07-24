@@ -63,7 +63,7 @@ class DETRsegm(nn.Module):
 
 
 def _expand(tensor, length: int):
-    return tensor.unsqueeze(1).repeat(1, int(length), 1, 1, 1).flatten(0, 1)
+    return tensor.unsqueeze(1).repeat(1, length, 1, 1, 1).flatten(0, 1)
 
 
 class MaskHeadSmallConv(nn.Module):
@@ -270,9 +270,7 @@ class PostProcessPanoptic(nn.Module):
         preds = []
 
         def to_tuple(tup):
-            if isinstance(tup, tuple):
-                return tup
-            return tuple(tup.cpu().tolist())
+            return tup if isinstance(tup, tuple) else tuple(tup.cpu().tolist())
 
         for cur_logits, cur_masks, cur_boxes, size, target_size in zip(
             out_logits, raw_masks, raw_boxes, processed_sizes, target_sizes

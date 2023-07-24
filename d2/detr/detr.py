@@ -135,13 +135,12 @@ class Detr(nn.Module):
 
         # building criterion
         matcher = HungarianMatcher(cost_class=1, cost_bbox=l1_weight, cost_giou=giou_weight)
-        weight_dict = {"loss_ce": 1, "loss_bbox": l1_weight}
-        weight_dict["loss_giou"] = giou_weight
+        weight_dict = {"loss_ce": 1, "loss_bbox": l1_weight, "loss_giou": giou_weight}
         if deep_supervision:
             aux_weight_dict = {}
             for i in range(dec_layers - 1):
-                aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
-            weight_dict.update(aux_weight_dict)
+                aux_weight_dict |= {f"{k}_{i}": v for k, v in weight_dict.items()}
+            weight_dict |= aux_weight_dict
         losses = ["labels", "boxes", "cardinality"]
         if self.mask_on:
             losses += ["masks"]

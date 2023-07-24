@@ -22,7 +22,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
-    header = 'Epoch: [{}]'.format(epoch)
+    header = f'Epoch: [{epoch}]'
     print_freq = 10
 
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
@@ -45,7 +45,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_value = losses_reduced_scaled.item()
 
         if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
+            print(f"Loss is {loss_value}, stopping training")
             print(loss_dict_reduced)
             sys.exit(1)
 

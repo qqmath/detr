@@ -137,8 +137,7 @@ class SetCriterion(nn.Module):
         # Count the number of predictions that are NOT "no-object" (which is the last class)
         card_pred = (pred_logits.argmax(-1) != pred_logits.shape[-1] - 1).sum(1)
         card_err = F.l1_loss(card_pred.float(), tgt_lengths.float())
-        losses = {'cardinality_error': card_err}
-        return losses
+        return {'cardinality_error': card_err}
 
     def loss_boxes(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
@@ -152,9 +151,7 @@ class SetCriterion(nn.Module):
 
         loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
 
-        losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
-
+        losses = {'loss_bbox': loss_bbox.sum() / num_boxes}
         loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
             box_ops.box_cxcywh_to_xyxy(src_boxes),
             box_ops.box_cxcywh_to_xyxy(target_boxes)))
@@ -184,11 +181,10 @@ class SetCriterion(nn.Module):
 
         target_masks = target_masks.flatten(1)
         target_masks = target_masks.view(src_masks.shape)
-        losses = {
+        return {
             "loss_mask": sigmoid_focal_loss(src_masks, target_masks, num_boxes),
             "loss_dice": dice_loss(src_masks, target_masks, num_boxes),
         }
-        return losses
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -234,7 +230,7 @@ class SetCriterion(nn.Module):
         # Compute all the requested losses
         losses = {}
         for loss in self.losses:
-            losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
+            losses |= self.get_loss(loss, outputs, targets, indices, num_boxes)
 
         # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
         if 'aux_outputs' in outputs:
@@ -249,7 +245,7 @@ class SetCriterion(nn.Module):
                         # Logging is enabled only for the last layer
                         kwargs = {'log': False}
                     l_dict = self.get_loss(loss, aux_outputs, targets, indices, num_boxes, **kwargs)
-                    l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
+                    l_dict = {f'{k}_{i}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
         return losses
@@ -281,9 +277,10 @@ class PostProcess(nn.Module):
         scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
         boxes = boxes * scale_fct[:, None, :]
 
-        results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
-
-        return results
+        return [
+            {'scores': s, 'labels': l, 'boxes': b}
+            for s, l, b in zip(scores, labels, boxes)
+        ]
 
 
 class MLP(nn.Module):
@@ -331,8 +328,11 @@ def build(args):
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
     matcher = build_matcher(args)
-    weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
-    weight_dict['loss_giou'] = args.giou_loss_coef
+    weight_dict = {
+        'loss_ce': 1,
+        'loss_bbox': args.bbox_loss_coef,
+        'loss_giou': args.giou_loss_coef,
+    }
     if args.masks:
         weight_dict["loss_mask"] = args.mask_loss_coef
         weight_dict["loss_dice"] = args.dice_loss_coef
@@ -340,8 +340,8 @@ def build(args):
     if args.aux_loss:
         aux_weight_dict = {}
         for i in range(args.dec_layers - 1):
-            aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
-        weight_dict.update(aux_weight_dict)
+            aux_weight_dict |= {f'{k}_{i}': v for k, v in weight_dict.items()}
+        weight_dict |= aux_weight_dict
 
     losses = ['labels', 'boxes', 'cardinality']
     if args.masks:
